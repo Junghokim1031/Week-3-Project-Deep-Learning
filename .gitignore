@@ -1,0 +1,32 @@
+# Jupyter Notebook specific
+.ipynb_checkpoints/     # Auto-saved versions of your notebooks
+*/.ipynb_checkpoints/* # Checkpoints in subfolders
+.virtual_documents/    # Created by jupyterlab-lsp for language server support
+
+# Python environment and cache
+__pycache__/            # Python bytecode
+*.py[cod]               # Compiled Python files
+*$py.class              # Compiled Python classes
+.env                    # Environment variables (sensitive data)
+.venv                 # Virtual environment
+venv                   # Virtual environment
+env/                    # Virtual environment
+bin/                    # Virtual environment binaries
+lib/                    # Virtual environment libraries
+
+# Data and Logs
+*.log                   # Log files
+data/                   # General data folder (often contains large datasets)
+!data/.gitkeep          # Optional: Keep the folder but ignore contents
+
+# IDE and System files
+.vscode/                # VS Code settings
+.idea/                  # PyCharm settings
+.DS_Store               # macOS system files
+Thumbs.db               # Windows thumbnail cache
+
+# Large/Output files (Optional)
+# If your notebooks generate large files or plots, consider ignoring them:
+# *.pdf
+# *.png
+*.csv
