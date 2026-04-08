@@ -7,3 +7,5 @@ scikit-learn
 scikit-multilearn
 Pillow
 nltk
+lime
+shap

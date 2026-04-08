@@ -30,3 +30,4 @@ Thumbs.db               # Windows thumbnail cache
 # *.pdf
 # *.png
 *.csv
+.venv/*
