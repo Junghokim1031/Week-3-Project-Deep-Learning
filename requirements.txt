@@ -19,3 +19,4 @@ joblib
 lifelines
 biopython
 certifi
+scikit-multilearn
