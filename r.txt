@@ -9,3 +9,4 @@ Pillow
 nltk
 lime
 shap
+biopython
