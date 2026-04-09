@@ -13,9 +13,15 @@ from Bio import Entrez
 # Data
 import pandas as pd
 import numpy as np
-import joblib
+
 import nltk
 from nltk.corpus import stopwords
+stop_words = set(stopwords.words('english'))
+import io
+
+#import ssl/
+# This bypasses the certificate verification
+# ssl._create_default_https_context = ssl._create_unverified_context
 
 #==================
 # Pubmed에 필요한 email 입력
@@ -32,51 +38,59 @@ st.set_page_config(
     layout='wide'
 )
 
-
 #==================
 # 모델
 #==================
 @st.cache_resource
 def load_assets():
-    model = tf.keras.models.load_model('./model/my_model.keras')
+    model = tf.saved_model.load('./model/my_model_folder')
     return model
 
 model = load_assets()
 
-
 #==================
-# 사이드바 입력
+# Pubmed 논문 가져오기
 #==================
-def user_input_features():
-    st.sidebar.markdown("### 폐 관련 논문 분석")
-    pubmed_id = st.sidebar.text_input("Pubmed ID", "")
 
-    # 1. Provide a fallback email
-    Entrez.email = "your_email@example.com" 
+def remove_stopwords(text):
+    if not text: return ""
+    # 공백 기준으로 단어 분리
+    words = text.split()
+    # 불용어 제거 (소문자로 비교하여 필터링)
+    filtered_words = [w for w in words if w.lower() not in stop_words]
+    return " ".join(filtered_words)
 
-    # 2. Only run if the user has actually typed something
-    if pubmed_id:
-        try:
-            # 3. Use retmode="xml" so Entrez.read() can parse it
-            handle = Entrez.efetch(db="pubmed", id=pubmed_id, retmode="xml")
-            record = Entrez.read(handle)
-            handle.close()
-            data = pd.DataFrame(record)
-            return data
-        except Exception as e:
-            st.sidebar.error(f"Error fetching data: {e}")
-            return None
+def model_predict(text_string):
+    text_string = text_string.lower()
+    text_string = remove_stopwords(text_string)
     
-    return None
-
+    # 1. 텐서 변환
+    input_tensor = tf.constant([text_string])
+    
+    # 2. SavedModel의 기본 시그니처(serve)를 호출
+    # 모델을 직접 호출하는 대신, .serve() 메서드를 사용합니다.
+    predictions = model.serve(input_tensor)
+    
+    # 3. 결과값 추출
+    if isinstance(predictions, dict):
+        output_key = list(predictions.keys())[0]
+        score = float(predictions[output_key][0][0])
+    else:
+        score = float(predictions[0][0])
+        
+    return score
 
 #==================
 # 메인 화면 구성
 #==================
-# The title and abstract of the Pubmed Article
-st.title("Pubmed 폐 관련 논문~ 분석")
-if(st.button('논문 분석')):
-    data = user_input_features()
-    if data is not None:
-        st.subheader(data['PubmedArticle'][0]['MedlineCitation']['Article']['ArticleTitle'])
-        st.write(data['PubmedArticle'][0]['MedlineCitation']['Article']['Abstract']['AbstractText'])
+st.title("Pubmed 폐 관련 논문 분석")
+title = st.text_input("제목")
+abstract = st.text_input("초록")
+Content = title + ": " + abstract
+
+if st.button('논문 분석'):
+    if Content.strip() == ":":
+        st.warning("분석할 제목이나 초록을 입력해주세요.")
+    else:
+        score = model_predict(Content)
+        st.write(f"분석 점수: **{score:.4f}**")
