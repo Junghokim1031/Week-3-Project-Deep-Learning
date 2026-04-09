@@ -1,8 +1,6 @@
 import streamlit as st
 
 # ENV
-from dotenv import load_dotenv
-import os
 
 # Model
 import tensorflow as tf
@@ -26,8 +24,6 @@ import io
 #==================
 # Pubmed에 필요한 email 입력
 #==================
-load_dotenv()
-email = os.getenv("EMAIL")
 
 #==================
 # 기초 페이지 설정
