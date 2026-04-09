@@ -1,82 +1,69 @@
 import streamlit as st
-
-# ENV
-from dotenv import load_dotenv
-import os
-
-# Model
 import tensorflow as tf
-
-# Pubmed Entrez
-from Bio import Entrez
-
-# Data
-import pandas as pd
-import numpy as np
-import joblib
 import nltk
-from nltk.corpus import stopwords
 
-#==================
-# Pubmed에 필요한 email 입력
-#==================
-load_dotenv()
-email = os.getenv("EMAIL")
-
-#==================
-# 기초 페이지 설정
-#==================
+# 1. Setup Page Config first
 st.set_page_config(
     page_title='Pubmed 폐 관련 논문 분석',
     page_icon='🧠',
     layout='wide'
 )
 
+# 2. Define a single initialization function for NLTK
+@st.cache_resource
+def initialize_nltk():
+    # This ensures downloads happen before we try to use them
+    nltk.download('stopwords')
+    nltk.download('punkt')
+    from nltk.corpus import stopwords
+    return set(stopwords.words('english'))
 
-#==================
-# 모델
-#==================
+# 3. Initialize stopwords globally (but safely via the cached function)
+stop_words = initialize_nltk()
+
+# 4. Load Model
 @st.cache_resource
 def load_assets():
-    model = tf.keras.models.load_model('./model/my_model.keras')
+    # Ensure your model path is correct relative to your app root
+    model = tf.saved_model.load('./model/my_model_folder')
     return model
 
 model = load_assets()
 
+# 5. Helper Functions
+def remove_stopwords(text):
+    if not text: return ""
+    words = text.split()
+    # Now stop_words is guaranteed to be loaded
+    filtered_words = [w for w in words if w.lower() not in stop_words]
+    return " ".join(filtered_words)
 
-#==================
-# 사이드바 입력
-#==================
-def user_input_features():
-    st.sidebar.markdown("### 폐 관련 논문 분석")
-    pubmed_id = st.sidebar.text_input("Pubmed ID", "")
-
-    # 1. Provide a fallback email
-    Entrez.email = "your_email@example.com" 
-
-    # 2. Only run if the user has actually typed something
-    if pubmed_id:
-        try:
-            # 3. Use retmode="xml" so Entrez.read() can parse it
-            handle = Entrez.efetch(db="pubmed", id=pubmed_id, retmode="xml")
-            record = Entrez.read(handle)
-            handle.close()
-            data = pd.DataFrame(record)
-            return data
-        except Exception as e:
-            st.sidebar.error(f"Error fetching data: {e}")
-            return None
+def model_predict(text_string):
+    text_string = text_string.lower()
+    text_string = remove_stopwords(text_string)
     
-    return None
+    input_tensor = tf.constant([text_string])
+    predictions = model.serve(input_tensor)
+    
+    if isinstance(predictions, dict):
+        output_key = list(predictions.keys())[0]
+        score = float(predictions[output_key][0][0])
+    else:
+        score = float(predictions[0][0])
+        
+    return score
 
+# 6. Main UI
+st.title("Pubmed 폐 관련 논문 분석")
+title = st.text_input("제목")
+abstract = st.text_area("초록") # Changed to text_area for better UX
+content = f"{title}: {abstract}"
 
-#==================
-# 메인 화면 구성
-#==================
-# The title and abstract of the Pubmed Article
-st.title("Pubmed 폐 관련 논문~ 분석")
-if(st.button('논문 분석')):
-    data = user_input_features()
-    if data is not None:
-        st.subheader(data['PubmedArticle'][0]['MedlineCitation']['Article']['ArticleTitle'])
-        st.write(data['PubmedArticle'][0]['MedlineCitation']['Article']['Abstract']['AbstractText'])
+if st.button('논문 분석'):
+    if not title.strip() and not abstract.strip():
+        st.warning("분석할 제목이나 초록을 입력해주세요.")
+    else:
+        with st.spinner('분석 중...'):
+            score = model_predict(content)
+            st.success(f"분석 완료!")
+            st.metric(label="분석 점수", value=f"{score:.4f}")
