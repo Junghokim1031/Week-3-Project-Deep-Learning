@@ -1,7 +1,6 @@
 import streamlit as st
 import tensorflow as tf
 import nltk
-from nltk.corpus import stopwords
 
 # 1. Setup Page Config first
 st.set_page_config(
@@ -16,6 +15,7 @@ def initialize_nltk():
     # This ensures downloads happen before we try to use them
     nltk.download('stopwords')
     nltk.download('punkt')
+    from nltk.corpus import stopwords
     return set(stopwords.words('english'))
 
 # 3. Initialize stopwords globally (but safely via the cached function)
